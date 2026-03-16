@@ -44,7 +44,7 @@ fi
 SKIP_FOLDER_VERIFY=false
 SKIP_FOLDER_FIX=false
 NO_GH_PROXY=false
-GH_PROXY='https://ghfast.top/'
+GH_PROXY='https://gh-proxy.org/'
 
 COMMEND=$1
 shift
@@ -198,19 +198,21 @@ CHECK() {
 
 INSTALL() {
   # Get version number
-  RESPONSE=$(curl -s "https://api.github.com/repos/EasyTier/EasyTier/releases/latest")
-  LATEST_VERSION=$(echo "$RESPONSE" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-  LATEST_VERSION=$(echo -e "$LATEST_VERSION" | tr -d '[:space:]')
+  # RESPONSE=$(curl -s "https://api.github.com/repos/EasyTier/EasyTier/releases/latest")
+  # LATEST_VERSION=$(echo "$RESPONSE" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+  # LATEST_VERSION=$(echo -e "$LATEST_VERSION" | tr -d '[:space:]')
+  LATEST_VERSION="v2.5.0"
 
-  if [ -z "$LATEST_VERSION" ]; then
-    echo -e "\r\n${RED_COLOR}Opus${RES}, failure to get latest version. Check your internet\r\nOr try ${GREEN_COLOR}install by hand${RES}\r\n"
-    exit 1
-  fi
+  # if [ -z "$LATEST_VERSION" ]; then
+  #   echo -e "\r\n${RED_COLOR}Opus${RES}, failure to get latest version. Check your internet\r\nOr try ${GREEN_COLOR}install by hand${RES}\r\n"
+  #   exit 1
+  # fi
 
   # Download
   echo -e "\r\n${GREEN_COLOR}Downloading EasyTier $LATEST_VERSION ...${RES}"
   rm -rf /tmp/easytier_tmp_install.zip
-  BASE_URL="https://github.com/EasyTier/EasyTier/releases/latest/download/easytier-linux-${ARCH}-${LATEST_VERSION}.zip"
+
+  BASE_URL="https://github.com/EasyTier/EasyTier/releases/download/${LATEST_VERSION}/easytier-linux-${ARCH}-${LATEST_VERSION}.zip"
   DOWNLOAD_URL=$($NO_GH_PROXY && echo "$BASE_URL" || echo "${GH_PROXY}${BASE_URL}")
   echo -e "Download URL: ${GREEN_COLOR}${DOWNLOAD_URL}${RES}"
   curl -L ${DOWNLOAD_URL} -o /tmp/easytier_tmp_install.zip $CURL_BAR
@@ -400,22 +402,23 @@ UPDATE() {
 
   # 1. Get the latest version info (while service is still running)
   echo -e "${GREEN_COLOR}Checking for the latest version...${RES}"
-  RESPONSE=$(curl -s "https://api.github.com/repos/EasyTier/EasyTier/releases/latest")
-  LATEST_VERSION=$(echo "$RESPONSE" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-  LATEST_VERSION=$(echo -e "$LATEST_VERSION" | tr -d '[:space:]')
+  # RESPONSE=$(curl -s "https://api.github.com/repos/EasyTier/EasyTier/releases/latest")
+  # LATEST_VERSION=$(echo "$RESPONSE" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+  # LATEST_VERSION=$(echo -e "$LATEST_VERSION" | tr -d '[:space:]')
+  LATEST_VERSION="v2.5.0"
 
-  if [ -z "$LATEST_VERSION" ]; then
-    echo -e "\r\n${RED_COLOR}Error${RES}: Failed to get the latest version. Please check your network connection.\r\n"
-    exit 1
-  fi
+  # if [ -z "$LATEST_VERSION" ]; then
+  #   echo -e "\r\n${RED_COLOR}Error${RES}: Failed to get the latest version. Please check your network connection.\r\n"
+  #   exit 1
+  # fi
 
   echo -e "Latest version found: ${GREEN_COLOR}$LATEST_VERSION${RES}"
 
   # 2. Download and extract the new version to a temporary directory (while service is still running)
   TEMP_UPDATE_DIR=$(mktemp -d /tmp/easytier_update_XXXXXX)
   echo -e "${GREEN_COLOR}Downloading new version to temporary directory: $TEMP_UPDATE_DIR${RES}"
-  
-  BASE_URL="https://github.com/EasyTier/EasyTier/releases/latest/download/easytier-linux-${ARCH}-${LATEST_VERSION}.zip"
+
+  BASE_URL="https://github.com/EasyTier/EasyTier/releases/download/${LATEST_VERSION}/easytier-linux-${ARCH}-${LATEST_VERSION}.zip"
   DOWNLOAD_URL=$($NO_GH_PROXY && echo "$BASE_URL" || echo "${GH_PROXY}${BASE_URL}")
   
   echo -e "Download URL: ${GREEN_COLOR}${DOWNLOAD_URL}${RES}"
