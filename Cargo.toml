@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "easytier",
+    "easytier-worker",
     "easytier-gui/src-tauri",
     "easytier-rpc-build",
     "easytier-web",

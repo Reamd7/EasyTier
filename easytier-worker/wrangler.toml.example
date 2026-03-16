@@ -1,0 +1,25 @@
+name = "easytier-worker"
+main = "build/worker/shim.mjs"
+compatibility_date = "2026-03-15"
+
+[build]
+command = "PATH=./node_modules/.bin:$PATH worker-build --release && node ./scripts/patch-worker-build.mjs"
+
+[observability]
+enabled = true
+
+[[durable_objects.bindings]]
+name = "NETWORK_DIRECTORY"
+class_name = "NetworkDirectoryDO"
+
+[[durable_objects.bindings]]
+name = "RELAY_SHARD"
+class_name = "RelayShardDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["NetworkDirectoryDO", "RelayShardDO"]
+
+[[routes]]
+pattern = "example.111111.xyz"
+custom_domain = true
