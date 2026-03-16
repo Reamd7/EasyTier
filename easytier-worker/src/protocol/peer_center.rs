@@ -655,11 +655,29 @@ fn conn_entries_from_conn_info(conn_info: Option<pb_sync_route_info_request::Con
             .collect(),
         Some(pb_sync_route_info_request::ConnInfo::ConnBitmap(bitmap)) => bitmap
             .peer_ids
-            .into_iter()
-            .map(|peer| OspfConnEntryView {
-                peer_id: peer.peer_id,
-                version: peer.version,
-                connected_peer_ids: Vec::new(),
+            .iter()
+            .enumerate()
+            .map(|(row_idx, peer)| {
+                let connected_peer_ids = bitmap
+                    .peer_ids
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(col_idx, connected_peer)| {
+                        let bit_idx = row_idx * bitmap.peer_ids.len() + col_idx;
+                        let byte = bitmap.bitmap.get(bit_idx / 8)?;
+                        if (byte & (1 << (bit_idx % 8))) != 0 {
+                            Some(connected_peer.peer_id)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+
+                OspfConnEntryView {
+                    peer_id: peer.peer_id,
+                    version: peer.version,
+                    connected_peer_ids,
+                }
             })
             .collect(),
         None => Vec::new(),

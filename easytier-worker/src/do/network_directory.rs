@@ -945,11 +945,13 @@ mod tests {
                 7,
                 2,
                 vec![],
-                vec![OspfConnEntryView {
-                    peer_id: 7,
-                    version: 5,
-                    connected_peer_ids: vec![1, 9],
-                }],
+                vec![
+                    OspfConnEntryView {
+                        peer_id: 7,
+                        version: 5,
+                        connected_peer_ids: vec![1, 9],
+                    },
+                ],
             ),
             updated_at_unix_ms: 200,
         });
