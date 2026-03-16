@@ -313,6 +313,7 @@ impl RelayShardDO {
         if let Some(attachment) = ws.deserialize_attachment::<PeerSocketAttachment>()? {
             self.unregister_peer(attachment.peer_id, &attachment.network_id, DEFAULT_SHARD_ID)
                 .await?;
+            self.broadcast_ospf_state_to_network(&attachment.network_id).await?;
         }
 
         Ok(())
@@ -854,6 +855,7 @@ impl worker::DurableObject for RelayShardDO {
             .or_else(|| existing_attachment.as_ref().map(|it| it.network_id.clone()))
             .unwrap_or_else(|| DEFAULT_NETWORK_ID.to_string());
         let peer_id = parsed.header.from_peer_id;
+        let mut networks_to_refresh = Vec::new();
 
         if existing_attachment.as_ref() != Some(&PeerSocketAttachment {
             network_id: network_id.clone(),
@@ -863,6 +865,7 @@ impl worker::DurableObject for RelayShardDO {
             if let Some(previous) = existing_attachment.as_ref() {
                 self.unregister_peer(previous.peer_id, &previous.network_id, DEFAULT_SHARD_ID)
                     .await?;
+                networks_to_refresh.push(previous.network_id.clone());
             }
 
             ws.serialize_attachment(PeerSocketAttachment {
@@ -885,6 +888,7 @@ impl worker::DurableObject for RelayShardDO {
                 RelayDecision::Bound => {
                     self.ensure_peer_registered(peer_id, &network_id, &network_name, DEFAULT_SHARD_ID)
                         .await?;
+                    networks_to_refresh.push(network_id.clone());
                 }
                 RelayDecision::DeliverLocal(_) | RelayDecision::ForwardToDirectory(_) | RelayDecision::Ignore => {
                     return Err(Error::RustError("unexpected bind state".into()));
@@ -893,7 +897,14 @@ impl worker::DurableObject for RelayShardDO {
         }
 
         if self.handle_handshake(&ws, &bytes)? {
+            for refresh_network in &networks_to_refresh {
+                self.broadcast_ospf_state_to_network(refresh_network).await?;
+            }
             return Ok(());
+        }
+
+        for refresh_network in &networks_to_refresh {
+            self.broadcast_ospf_state_to_network(refresh_network).await?;
         }
 
         if self.handle_ping(&ws, &bytes)? {

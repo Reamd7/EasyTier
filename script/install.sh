@@ -49,12 +49,6 @@ GH_PROXY='https://gh-proxy.org/'
 COMMEND=$1
 shift
 
-# Check path
-if [[ "$#" -ge 1 && ! "$1" == --* ]]; then
-    INSTALL_PATH=$1
-    shift
-fi
-
 # Check other option
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -70,7 +64,15 @@ while [[ "$#" -gt 0 ]]; do
                 exit 1
             fi
             ;;
-        *) echo "Unknown option: $1"; exit 1 ;;
+        --*) echo "Unknown option: $1"; exit 1 ;;
+        *)
+            if [ -z "$INSTALL_PATH" ]; then
+                INSTALL_PATH=$1
+            else
+                echo "Unknown option: $1"
+                exit 1
+            fi
+            ;;
     esac
     shift
 done
@@ -161,14 +163,16 @@ elif [ "$ARCH" == "UNKNOWN" ]; then
   exit 1
 fi
 
-# Detect init system
+# Detect init system. Plain containers may have neither systemd nor OpenRC,
+# but the binary install itself should still work there.
 if command -v systemctl >/dev/null 2>&1; then
   INIT_SYSTEM="systemd"
 elif command -v rc-update >/dev/null 2>&1; then
   INIT_SYSTEM="openrc"
 else
-  echo -e "\r\n${RED_COLOR}Error: Unsupported init system (neither systemd nor OpenRC found)${RES}\r\n"
-  exit 1
+  INIT_SYSTEM=""
+  echo -e "\r\n${YELLOW_COLOR}Warning: Unsupported init system (neither systemd nor OpenRC found).${RES}"
+  echo -e "${YELLOW_COLOR}EasyTier binaries will be installed, but no service will be created or started.${RES}\r\n"
 fi
 
 
@@ -278,6 +282,14 @@ disable_udp_hole_punching = false
 
 EOF
 
+  if [ -z "$INIT_SYSTEM" ]; then
+    rm -rf /usr/bin/easytier-core
+    rm -rf /usr/bin/easytier-cli
+    ln -sf $INSTALL_PATH/easytier-core /usr/sbin/easytier-core
+    ln -sf $INSTALL_PATH/easytier-cli /usr/sbin/easytier-cli
+    return 0
+  fi
+
   # Create init script
   if [ "$INIT_SYSTEM" = "openrc" ]; then
     cat >/etc/init.d/easytier <<EOF
@@ -363,11 +375,13 @@ SUCCESS() {
     echo -e "Start: ${GREEN_COLOR}systemctl start easytier@default${RES}"
     echo -e "Restart: ${GREEN_COLOR}systemctl restart easytier@default${RES}"
     echo -e "Stop: ${GREEN_COLOR}systemctl stop easytier@default${RES}"
-  else
+  elif [ "$INIT_SYSTEM" = "openrc" ]; then
     echo -e "Status: ${GREEN_COLOR}rc-service easytier status${RES}"
     echo -e "Start: ${GREEN_COLOR}rc-service easytier start${RES}"
     echo -e "Restart: ${GREEN_COLOR}rc-service easytier restart${RES}"
     echo -e "Stop: ${GREEN_COLOR}rc-service easytier stop${RES}"
+  else
+    echo -e "Run directly: ${GREEN_COLOR}$INSTALL_PATH/easytier-core -c $INSTALL_PATH/config/default.conf${RES}"
   fi
   echo
 }
@@ -378,7 +392,7 @@ UNINSTALL() {
   if [ "$INIT_SYSTEM" = "systemd" ]; then
     systemctl disable "easytier@*" >/dev/null 2>&1
     systemctl stop "easytier@*" >/dev/null 2>&1
-  else
+  elif [ "$INIT_SYSTEM" = "openrc" ]; then
     rc-update del easytier
     rc-service easytier stop
   fi
@@ -386,8 +400,10 @@ UNINSTALL() {
   if [ "$INIT_SYSTEM" = "systemd" ]; then
     rm -rf $INSTALL_PATH /etc/systemd/system/easytier.service /usr/bin/easytier-core /usr/bin/easytier-cli /etc/systemd/system/easytier@.service /usr/sbin/easytier-core /usr/sbin/easytier-cli
     systemctl daemon-reload
-  else
+  elif [ "$INIT_SYSTEM" = "openrc" ]; then
     rm -rf $INSTALL_PATH /etc/init.d/easytier /usr/bin/easytier-core /usr/bin/easytier-cli /usr/sbin/easytier-core /usr/sbin/easytier-cli
+  else
+    rm -rf $INSTALL_PATH /usr/bin/easytier-core /usr/bin/easytier-cli /usr/sbin/easytier-core /usr/sbin/easytier-cli
   fi
   echo -e "\r\n${GREEN_COLOR}EasyTier was removed successfully! ${RES}\r\n"
 }
@@ -454,10 +470,12 @@ UPDATE() {
     else
         echo -e "\r\n${YELLOW_COLOR}No running EasyTier services found. Nothing to stop.${RES}"
     fi
-  else # openrc
+  elif [ "$INIT_SYSTEM" = "openrc" ]; then
     # openrc script seems to handle a single service, so keep it simple
     echo -e "\r\n${YELLOW_COLOR}Stopping EasyTier service...${RES}"
     rc-service easytier stop
+  else
+    echo -e "\r\n${YELLOW_COLOR}No supported init system detected. Updating binaries without service management.${RES}"
   fi
 
   # Backup critical files, primarily the configuration
@@ -488,9 +506,11 @@ UPDATE() {
     else
         echo -e "${GREEN_COLOR}No services were running before the update. Update complete.${RES}"
     fi
-  else # openrc
+  elif [ "$INIT_SYSTEM" = "openrc" ]; then
     echo -e "${GREEN_COLOR}Starting new version of EasyTier service...${RES}"
     rc-service easytier start
+  else
+    echo -e "${GREEN_COLOR}No supported init system detected. Update complete; start EasyTier manually.${RES}"
   fi
   
   # 5. Clean up temporary files
