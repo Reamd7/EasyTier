@@ -12,7 +12,7 @@ import VueMacros from 'unplugin-vue-macros/vite'
 import { VueRouterAutoImports } from 'unplugin-vue-router'
 import VueRouter from 'unplugin-vue-router/vite'
 import { defineConfig } from 'vite'
-import VueDevTools from 'vite-plugin-vue-devtools'
+// import VueDevTools from 'vite-plugin-vue-devtools'
 import Layouts from 'vite-plugin-vue-layouts'
 
 function findIp(gateway: string) {
@@ -97,7 +97,7 @@ export default defineConfig(async () => ({
     }),
 
     // https://github.com/webfansplz/vite-plugin-vue-devtools
-    VueDevTools(),
+    // VueDevTools(), // disabled: crashes on Node 25 during build
   ],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
