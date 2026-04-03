@@ -21,7 +21,7 @@ on:
       version:
         description: 'Version for this release'
         type: string
-        default: 'v2.4.5'
+        default: 'v2.4.6'
         required: true
       make_latest:
         description: 'Mark this release as latest'
@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   release:
-    if: contains('["KKRainbow"]', github.actor)
+    if: contains('["Reamd7"]', github.actor)
     runs-on: ubuntu-latest
     steps:
       -
@@ -46,7 +46,7 @@ jobs:
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
           run_id: ${{ inputs.core_run_id }}
-          repo: EasyTier/EasyTier
+          repo: Reamd7/EasyTier
           path: release_assets
 
       - name: Download GUI Artifact
@@ -54,7 +54,7 @@ jobs:
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
           run_id: ${{ inputs.gui_run_id }}
-          repo: EasyTier/EasyTier
+          repo: Reamd7/EasyTier
           path: release_assets_nozip
 
       - name: Download Mobile Artifact
@@ -62,7 +62,7 @@ jobs:
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
           run_id: ${{ inputs.mobile_run_id }}
-          repo: EasyTier/EasyTier
+          repo: Reamd7/EasyTier
           path: release_assets_nozip
 
       - name: Zip release assets
